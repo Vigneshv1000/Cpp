@@ -1,0 +1,355 @@
+#include <iostream>
+#include <vector>
+#include <fstream>
+#include <iomanip>
+#include <string>
+
+using namespace std;
+
+// INHERITANCE & BASE CLASS - OOPS Concept
+class Person {
+protected: // Protected access for derived classes
+    int id;
+    string name;
+
+public:
+    // CONSTRUCTOR - Initialize member variables
+    Person(int i, string n) : id(i), name(n) {}
+    
+    // VIRTUAL FUNCTION - Polymorphism, can be overridden
+    virtual void display() const {
+        cout << "ID: " << id << ", Name: " << name << endl;
+    }
+    
+    // VIRTUAL DESTRUCTOR - Proper cleanup in inheritance hierarchy
+    virtual ~Person() {}
+    
+    int getId() const { return id; }
+};
+
+// DERIVED CLASS - INHERITANCE from Person
+class Student : public Person {
+private:
+    float gpa;
+    string email;
+
+public:
+    // DEFAULT CONSTRUCTOR - No parameters
+    Student() : Person(0, ""), gpa(0.0) {}
+    
+    // PARAMETERIZED CONSTRUCTOR - With parameters
+    Student(int id, string n, float g, string e) 
+        : Person(id, n), gpa(g), email(e) {}
+    
+    // COPY CONSTRUCTOR - Deep copy concept
+    Student(const Student& other) 
+        : Person(other.id, other.name), gpa(other.gpa), email(other.email) {}
+    
+    // DESTRUCTOR - Cleanup resources
+    ~Student() {
+        // Automatic cleanup when object destroyed
+    }
+
+    float getGPA() const { return gpa; }
+    string getEmail() const { return email; }
+    void setGPA(float g) { gpa = g; }
+    void setEmail(string e) { email = e; }
+
+    // FUNCTION OVERRIDING - Override virtual function from base class
+    void display() const override {
+        cout << left << setw(8) << id 
+             << setw(15) << name 
+             << setw(8) << fixed << setprecision(2) << gpa 
+             << setw(20) << email << endl;
+    }
+
+    // OPERATOR OVERLOADING - Overload > operator for comparison
+    bool operator>(const Student& other) const {
+        return this->gpa > other.gpa;
+    }
+
+    // OPERATOR OVERLOADING - Overload == operator for searching
+    bool operator==(int rollNum) const {
+        return this->id == rollNum;
+    }
+};
+
+// UTILITY CLASS - Static members example
+class Utils {
+public:
+    // STATIC MEMBER - Shared across all objects
+    static int totalOperations;
+    
+    static void incrementOperations() {
+        totalOperations++;
+    }
+};
+
+int Utils::totalOperations = 0;
+
+// MAIN MANAGEMENT CLASS
+class StudentManagementSystem {
+private:
+    // POINTERS - Dynamic memory management
+    vector<Student*> students;
+    const string FILE_NAME = "students.txt";
+
+    // Function to find student by roll number
+    int findStudentIndex(int rollNumber) const {
+        for (size_t i = 0; i < students.size(); i++) {
+            if ((*students[i]) == rollNumber) { // DEREFERENCE POINTER with *
+                return i;
+            }
+        }
+        return -1;
+    }
+
+public:
+    // CONSTRUCTOR
+    StudentManagementSystem() {
+        cout << "System Initialized\n";
+    }
+
+    // DESTRUCTOR - Free all allocated memory
+    ~StudentManagementSystem() {
+        for (auto ptr : students) {
+            delete ptr; // DELETE POINTER - Free dynamic memory
+        }
+        students.clear();
+    }
+
+    void addStudent() {
+        int roll;
+        string name, email;
+        float gpa;
+
+        cout << "\n--- Add New Student ---\n";
+        cout << "Enter Roll Number: ";
+        cin >> roll;
+        cin.ignore();
+
+        if (findStudentIndex(roll) != -1) {
+            cout << "Error: Roll number already exists!\n";
+            return;
+        }
+
+        cout << "Enter Name: ";
+        getline(cin, name);
+        
+        cout << "Enter GPA: ";
+        cin >> gpa;
+        cin.ignore();
+        
+        cout << "Enter Email: ";
+        getline(cin, email);
+
+        // DYNAMIC MEMORY ALLOCATION - Using 'new' keyword with POINTER
+        Student* newStudent = new Student(roll, name, gpa, email);
+        students.push_back(newStudent);
+        
+        Utils::incrementOperations();
+        cout << "Student added successfully!\n";
+    }
+
+    void displayAllStudents() const {
+        if (students.empty()) {
+            cout << "\nNo students found!\n";
+            return;
+        }
+
+        cout << "\n--- All Students ---\n";
+        cout << left << setw(8) << "Roll No" 
+             << setw(15) << "Name" 
+             << setw(8) << "GPA" 
+             << setw(20) << "Email" << endl;
+        cout << string(51, '-') << endl;
+
+        // CONST ITERATOR & POINTER DEREFERENCING with ->
+        for (const auto ptr : students) {
+            ptr->display(); // POINTER -> operator
+        }
+    }
+
+    void searchStudent() const {
+        int roll;
+        cout << "\nEnter Roll Number to Search: ";
+        cin >> roll;
+
+        int index = findStudentIndex(roll);
+        if (index == -1) {
+            cout << "Student not found!\n";
+            return;
+        }
+
+        cout << "\n--- Student Details ---\n";
+        // POINTER DEREFERENCE with -> operator
+        cout << "Roll Number: " << students[index]->getId() << endl;
+        students[index]->display();
+    }
+
+    void updateStudent() {
+        int roll;
+        cout << "\nEnter Roll Number to Update: ";
+        cin >> roll;
+        cin.ignore();
+
+        int index = findStudentIndex(roll);
+        if (index == -1) {
+            cout << "Student not found!\n";
+            return;
+        }
+
+        cout << "\n--- Update Student ---\n";
+        cout << "1. Update GPA\n";
+        cout << "2. Update Email\n";
+        cout << "Enter Choice: ";
+        
+        int choice;
+        cin >> choice;
+        cin.ignore();
+
+        // POINTER -> DEREFERENCE for member access
+        if (choice == 1) {
+            cout << "Enter New GPA: ";
+            float gpa;
+            cin >> gpa;
+            students[index]->setGPA(gpa);
+        }
+        else if (choice == 2) {
+            cout << "Enter New Email: ";
+            string email;
+            getline(cin, email);
+            students[index]->setEmail(email);
+        }
+
+        Utils::incrementOperations();
+        cout << "Student updated successfully!\n";
+    }
+
+    void deleteStudent() {
+        int roll;
+        cout << "\nEnter Roll Number to Delete: ";
+        cin >> roll;
+
+        int index = findStudentIndex(roll);
+        if (index == -1) {
+            cout << "Student not found!\n";
+            return;
+        }
+
+        // DELETE POINTER - Calls destructor automatically (RAII principle)
+        delete students[index];
+        students.erase(students.begin() + index);
+        
+        Utils::incrementOperations();
+        cout << "Student deleted successfully!\n";
+    }
+
+    // FUNCTION OVERLOADING - Same name, different behavior
+    void displayStats() const {
+        cout << "\nTotal Operations: " << Utils::totalOperations << endl;
+        cout << "Total Students: " << students.size() << endl;
+    }
+
+    void saveToFile() const {
+        ofstream file(FILE_NAME);
+        if (!file) {
+            cout << "Error: Cannot open file!\n";
+            return;
+        }
+
+        for (const auto ptr : students) {
+            // POINTER DEREFERENCE for data access
+            file << ptr->getId() << "|"
+                 << ptr->getEmail() << "\n";
+        }
+
+        file.close();
+        cout << "Data saved successfully!\n";
+    }
+
+    void loadFromFile() {
+        ifstream file(FILE_NAME);
+        if (!file) {
+            cout << "No previous data found.\n";
+            return;
+        }
+
+        int roll;
+        string email;
+        char delimiter;
+
+        while (file >> roll >> delimiter) {
+            getline(file, email);
+            
+            // DYNAMIC ALLOCATION with 'new' keyword
+            Student* s = new Student(roll, "Unknown", 0.0, email);
+            students.push_back(s);
+        }
+
+        file.close();
+        cout << "Data loaded successfully!\n";
+    }
+
+    void displayMenu() const {
+        cout << "\n=============== Student Management System ===============\n";
+        cout << "1. Add Student\n";
+        cout << "2. Display All Students\n";
+        cout << "3. Search Student\n";
+        cout << "4. Update Student\n";
+        cout << "5. Delete Student\n";
+        cout << "6. Display Stats\n";
+        cout << "7. Save and Exit\n";
+        cout << "========================================================\n";
+        cout << "Enter Your Choice: ";
+    }
+
+    void run() {
+        loadFromFile();
+        int choice;
+
+        while (true) {
+            displayMenu();
+            cin >> choice;
+
+            // SWITCH statement - Control flow
+            switch (choice) {
+                case 1:
+                    addStudent();
+                    break;
+                case 2:
+                    displayAllStudents();
+                    break;
+                case 3:
+                    searchStudent();
+                    break;
+                case 4:
+                    updateStudent();
+                    break;
+                case 5:
+                    deleteStudent();
+                    break;
+                case 6:
+                    displayStats();
+                    break;
+                case 7:
+                    saveToFile();
+                    cout << "Goodbye!\n";
+                    return;
+                default:
+                    cout << "Invalid Choice!\n";
+            }
+        }
+    }
+};
+
+// MAIN FUNCTION - Program entry point
+int main() {
+    // OBJECT CREATION - Constructor called
+    StudentManagementSystem system;
+    
+    system.run();
+    
+    // DESTRUCTOR called automatically when system goes out of scope
+    return 0;
+}
